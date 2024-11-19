@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NES Emulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsnes"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #emulator {
+            margin: 20px auto;
+            display: block;
+            border: 2px solid black;
+        }
+        #status {
+            margin-top: 10px;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>NES Emulator</h1>
+    <canvas id="emulator" width="256" height="240"></canvas>
+    <p id="status">Loading ROM...</p>
+
+    <script>
+        // Get URL query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const romUrl = urlParams.get('rom');
+        const saveUrl = urlParams.get('save');
+
+        // Emulator initialization
+        const canvas = document.getElementById('emulator');
+        const nes = new jsnes.NES({
+            onFrame: function(frameBuffer) {
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.createImageData(256, 240);
+                for (let i = 0; i < frameBuffer.length; i++) {
+                    imageData.data[i * 4 + 0] = frameBuffer[i][0]; // Red
+                    imageData.data[i * 4 + 1] = frameBuffer[i][1]; // Green
+                    imageData.data[i * 4 + 2] = frameBuffer[i][2]; // Blue
+                    imageData.data[i * 4 + 3] = 255; // Alpha
+                }
+                ctx.putImageData(imageData, 0, 0);
+            },
+            onStatusUpdate: function(message) {
+                document.getElementById('status').textContent = message;
+            },
+        });
+
+        // Function to fetch a binary file
+        async function fetchBinaryFile(url) {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
+            }
+            return await response.arrayBuffer();
+        }
+
+        // Load ROM and optional savegame
+        async function loadEmulator() {
+            try {
+                if (!romUrl) {
+                    document.getElementById('status').textContent = "No ROM provided.";
+                    return;
+                }
+
+                // Fetch and load ROM
+                const romData = await fetchBinaryFile(romUrl);
+                nes.loadROM(new Uint8Array(romData));
+
+                // If savegame is provided, load it
+                if (saveUrl) {
+                    const saveData = await fetchBinaryFile(saveUrl);
+                    nes.loadSaveState(new Uint8Array(saveData));
+                    document.getElementById('status').textContent = "Savegame loaded!";
+                }
+
+                // Start emulator
+                nes.start();
+                document.getElementById('status').textContent = "Emulator running!";
+            } catch (error) {
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+            }
+        }
+
+        // Start the emulator
+        loadEmulator();
+    </script>
+</body>
+</html>
