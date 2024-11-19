@@ -26,7 +26,7 @@
     <canvas id="emulator" width="256" height="240"></canvas>
     <p id="status">Loading ROM...</p>
 
-    <script>
+    <script defer>
         // Get URL query parameters
         const urlParams = new URLSearchParams(window.location.search);
         const romUrl = urlParams.get('rom');
